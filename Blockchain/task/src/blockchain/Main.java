@@ -2,6 +2,13 @@ package blockchain;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        Blockchain chain = new Blockchain();
+        chain.add("Open");
+        chain.add("Close");
+        chain.add("Drop");
+        chain.add("Eat");
+        chain.add("Push");
+
+        System.out.print(chain.toString());
     }
 }
