@@ -19,6 +19,7 @@ class Block {
 
     int id;
     long timestamp;
+    long magic;
     String hashprev;
     String hash;
 
@@ -26,6 +27,13 @@ class Block {
         if (strBlock.length() == 0) {
             return null;
         }
+
+        if (!(strBlock.contains("Block:")
+            && strBlock.contains("Timestamp:"))) {
+
+            return null;
+        }
+
         Block block = new Block();
 
         List<String> lines = strBlock
@@ -34,9 +42,9 @@ class Block {
             .filter(e -> e.length() > 0)
             .collect(Collectors.toList());
 
-        if (lines.size() != 7) {
+        if (lines.size() != 11) {
             throw new BlockParseException("Every block should " +
-                "contain 7 lines of data");
+                "contain 11 lines of data");
         }
 
         if (!lines.get(0).equals("Block:")) {
@@ -44,12 +52,18 @@ class Block {
                 "should be \"Block:\"");
         }
 
-        if (!lines.get(1).startsWith("Id:")) {
+        if (!lines.get(1).startsWith("Created by")) {
             throw new BlockParseException("Second line of every block " +
+                "should start with \"Created by\"");
+        }
+
+        if (!lines.get(2).startsWith("Id:")) {
+            throw new BlockParseException("Third line of every block " +
                 "should start with \"Id:\"");
         }
 
-        String id = lines.get(1).split(":")[1].strip();
+        String id = lines.get(2).split(":")[1]
+            .strip().replace("-", "");
         boolean isNumeric = id.chars().allMatch(Character::isDigit);
 
         if (!isNumeric) {
@@ -58,12 +72,15 @@ class Block {
 
         block.id = Integer.parseInt(id);
 
-        if (!lines.get(2).startsWith("Timestamp:")) {
-            throw new BlockParseException("Third line of every block " +
+
+
+        if (!lines.get(3).startsWith("Timestamp:")) {
+            throw new BlockParseException("4-th line of every block " +
                 "should start with \"Timestamp:\"");
         }
 
-        String timestamp = lines.get(2).split(":")[1].strip();
+        String timestamp = lines.get(3).split(":")[1]
+            .strip().replace("-", "");
         isNumeric = timestamp.chars().allMatch(Character::isDigit);
 
         if (!isNumeric) {
@@ -72,18 +89,36 @@ class Block {
 
         block.timestamp = Long.parseLong(timestamp);
 
-        if (!lines.get(3).equals("Hash of the previous block:")) {
-            throw new BlockParseException("4-th line of every block " +
+
+        if (!lines.get(4).startsWith("Magic number:")) {
+            throw new BlockParseException("5-th line of every block " +
+                "should start with \"Magic number:\"");
+        }
+
+        String magic = lines.get(4).split(":")[1]
+            .strip().replace("-", "");
+        isNumeric = magic.chars().allMatch(Character::isDigit);
+
+        if (!isNumeric) {
+            throw new BlockParseException("Magic number should be a number");
+        }
+
+        block.magic = Long.parseLong(magic);
+
+
+
+        if (!lines.get(5).equals("Hash of the previous block:")) {
+            throw new BlockParseException("6-th line of every block " +
                 "should be \"Hash of the previous block:\"");
         }
 
-        if (!lines.get(5).equals("Hash of the block:")) {
-            throw new BlockParseException("6-th line of every block " +
+        if (!lines.get(7).equals("Hash of the block:")) {
+            throw new BlockParseException("8-th line of every block " +
                 "should be \"Hash of the block:\"");
         }
 
-        String prevhash = lines.get(4).strip();
-        String hash = lines.get(6).strip();
+        String prevhash = lines.get(6).strip();
+        String hash = lines.get(8).strip();
 
         if (!(prevhash.length() == 64 || prevhash.equals("0"))
             || !(hash.length() == 64)) {
@@ -115,25 +150,31 @@ class Block {
     }
 }
 
+class Clue {
+    String zeros;
+    Clue(int n) {
+        zeros = "0".repeat(n);
+    }
+}
 
-public class BlockchainTest extends StageTest {
+
+public class BlockchainTest extends StageTest<Clue> {
     public BlockchainTest() {
         super(Main.class);
     }
 
     List<String> previousOutputs = new ArrayList<>();
 
-
     @Override
-    public List<TestCase> generate() {
+    public List<TestCase<Clue>> generate() {
         return List.of(
-            new TestCase(),
-            new TestCase()
+            new TestCase<>(),
+            new TestCase<>()
         );
     }
 
     @Override
-    public CheckResult check(String reply, Object clue) {
+    public CheckResult check(String reply, Clue clue) {
 
         if (previousOutputs.contains(reply)) {
             return new CheckResult(false,
@@ -154,12 +195,6 @@ public class BlockchainTest extends StageTest {
         if (blocks.size() != 5) {
             return new CheckResult(false,
                 "You should output 5 blocks, found " + blocks.size());
-        }
-
-        Block first = blocks.get(0);
-        if (!first.hashprev.equals("0")) {
-            return new CheckResult(false,
-                "Previous hash of the first block should be \"0\"");
         }
 
         for (int i = 1; i < blocks.size(); i++) {

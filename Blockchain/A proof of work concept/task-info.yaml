@@ -233,6 +233,9 @@ files:
         }
     }
   learner_created: false
+- name: blockchain.txt
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/projects/50/stages/272/implement
-status: Unchecked
-record: -1
+status: Solved
+record: 1
