@@ -14,6 +14,9 @@ public class Blockchain {
         this.leadingZeros = leadingZeros;
 
         //readLocalBlockchain();        //tests fail to account for this apparently
+
+        if (!isValid())
+            throw new IllegalArgumentException("Blockchain is broken, not all prevHash match the previous block.");
     }
 
     private void readLocalBlockchain() {
@@ -26,15 +29,14 @@ public class Blockchain {
 
             Block block;
             while ((block = (Block) inObject.readObject()) != null) {
-                if (!block.thisHash.substring(0, leadingZeros).matches("0*"))
-                    throw new IllegalArgumentException("Warning: Block " + block.id + " is unproved!");
+                if (block.isUnproved(leadingZeros))
+                    throw new IllegalArgumentException("Warning: Block is unproved!");
                 blockchain.add(block);
                 size++;
             }
         } catch (EOFException ignore) {
         } catch (IOException | ClassNotFoundException ex) {
-            //System.err.println("Could not read blockchain from file.");
-            ex.printStackTrace();
+            System.err.println("Could not read blockchain from file.");
         }
     }
 
@@ -47,9 +49,23 @@ public class Blockchain {
              ObjectOutputStream outObject = new ObjectOutputStream(outFile)) {
             outObject.writeObject(blockToAdd);
         } catch (IOException ex) {
-            //System.err.println("Could not write new block to file.");
-            ex.printStackTrace();
+            System.err.println("Could not write new block to file.");
         }
+    }
+
+    public boolean isValid() {
+        if (isEmpty())
+            return true;
+
+        for (int i = 1; i < size; i++) {
+            if (!blockchain.get(i).matchesPrevious(blockchain.get(i - 1)))
+                return false;
+        }
+        return true;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
     }
 
     @Override
@@ -63,9 +79,5 @@ public class Blockchain {
 
         out.setLength(out.length() - 3);      //remove extra three newlines after final block
         return out.toString();
-    }
-
-    public boolean isEmpty() {
-        return size == 0;
     }
 }
